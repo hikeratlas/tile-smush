@@ -10,6 +10,15 @@ set -euo pipefail
 rm -f merged.mbtiles*
 
 pids=()
+
+kill_children() {
+	for pid in ${pids[*]}; do
+		kill $pid
+	done
+}
+
+trap kill_children INT
+
 export SHARDS=16
 for i in $(seq 0 $((SHARDS - 1))); do
 	SHARD=$i ./tile-smush "$@" &
