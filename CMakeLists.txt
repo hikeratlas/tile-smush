@@ -4,9 +4,9 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-project(tilemaker)
+project(tilesmush)
 
-OPTION(TILEMAKER_BUILD_STATIC "Attempt to link dependencies static" OFF)
+OPTION(TILESMUSH_BUILD_STATIC "Attempt to link dependencies static" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -18,7 +18,7 @@ if (POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
-IF (TILEMAKER_BUILD_STATIC)
+IF (TILESMUSH_BUILD_STATIC)
 	SET (CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
 ENDIF ()
 
@@ -43,17 +43,17 @@ else()
   	set(THREAD_LIB pthread)
 endif()
 
-file(GLOB tilemaker_src_files
+file(GLOB tilesmush_src_files
 	src/coordinates.cpp
 	src/helpers.cpp
 	src/mbtiles.cpp
 	src/tile_coordinates_set.cpp
-	src/tilemaker.cpp
+	src/tile-smush.cpp
   )
-add_executable(tilemaker ${tilemaker_src_files})
-target_include_directories(tilemaker PRIVATE include)
-target_include_directories(tilemaker PRIVATE ${CMAKE_BINARY_DIR}) # for generated files
-target_link_libraries(tilemaker
+add_executable(tile-smush ${tilesmush_src_files})
+target_include_directories(tile-smush PRIVATE include)
+target_include_directories(tile-smush PRIVATE ${CMAKE_BINARY_DIR}) # for generated files
+target_link_libraries(tile-smush
 		${THREAD_LIB} ${CMAKE_DL_LIBS}
 		SQLite::SQLite3
 		ZLIB::ZLIB
@@ -65,4 +65,4 @@ if(NOT HAVE_CXX11_ATOMIC)
 	" ${LIBATOMIC_LINK_FLAGS}")
 endif()
 
-install(TARGETS tilemaker RUNTIME DESTINATION bin)
+install(TARGETS tile-smush RUNTIME DESTINATION bin)

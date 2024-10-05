@@ -21,7 +21,7 @@ tilesmush: \
 	src/helpers.o \
 	src/mbtiles.o \
 	src/tile_coordinates_set.o \
-	src/tilemaker.o
+	src/tile-smush.o
 	$(CXX) $(CXXFLAGS) -o tile-smush $^ $(INC) $(LIB) $(LDFLAGS)
 
 test: \
