@@ -30,4 +30,3 @@ done
 for pid in ${pids[*]}; do
 	wait $pid
 done
-echo "PRAGMA journal_mode=DELETE;" | sqlite3 merged.mbtiles
