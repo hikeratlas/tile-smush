@@ -277,21 +277,36 @@ int main(const int argc, const char* argv[]) {
 					continue;
 				}
 
-				std::cout << "need to merge z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << std::endl;
+				//std::cout << "need to merge z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << std::endl;
 				// Multiple mbtiles want to contribute a tile at this zxy.
 				// They'll all have disjoint layers, so decompress each tile
 				// and concatenate their contents to form the new tile.
 
+				vtzero::tile_builder builder;
+
+				// TODO: consider using a shared ptr or something to avoid needless
+				// string copying
+				std::deque<std::string> strs;
 				for (auto& match : matching) {
-					std::vector<char> old = match->mbtiles.readTile(zoom, x, y);
+					std::vector<char> compressed = match->mbtiles.readTile(zoom, x, y);
 
 					std::string oldTile;
-					decompress_string(oldTile, old.data(), old.size(), true);
-					std::cout << "old.size()=" << std::to_string(old.size()) << " oldTile.size()=" << std::to_string(oldTile.size()) << std::endl;
+					decompress_string(oldTile, compressed.data(), compressed.size(), true);
+					//std::cout << "compressed.size()=" << std::to_string(compressed.size()) << " oldTile.size()=" << std::to_string(oldTile.size()) << std::endl;
 
-					vtzero::vector_tile existingTile{oldTile};
-
+					strs.push_back(oldTile);
+					vtzero::vector_tile existingTile{strs.back()};
+					while (auto layer = existingTile.next_layer()) {
+						builder.add_existing_layer(layer);
+						std::string layerName(layer.name().data(), layer.name().size());
+						//std::cout << "adding layer=" << layerName << " features=" << std::to_string(layer.num_features()) << std::endl;
+					}
 				}
+
+				std::string buffer;
+				builder.serialize(buffer);
+				std::string compressed = compress_string(buffer, 9, true);
+				merged.saveTile(zoom, x, y, &compressed, false);
 			}
 		}
 	}
