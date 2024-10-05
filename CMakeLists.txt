@@ -70,7 +70,6 @@ endif()
 
 file(GLOB tilemaker_src_files
 	src/coordinates.cpp
-	src/coordinates_geom.cpp
 	src/helpers.cpp
 	src/mbtiles.cpp
 	src/tile_coordinates_set.cpp

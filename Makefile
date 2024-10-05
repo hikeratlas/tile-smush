@@ -85,7 +85,6 @@ INC := -I$(PLATFORM_PATH)/include -isystem ./include -I./src $(LUA_CFLAGS)
 all: tilesmush
 
 tilesmush: \
-	src/coordinates_geom.o \
 	src/coordinates.o \
 	src/helpers.o \
 	src/mbtiles.o \
