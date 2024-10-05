@@ -140,7 +140,7 @@ int main(const int argc, const char* argv[]) {
 			//
 			// ...but why does this die, and our very similar use immediately
 			// below does not?
-			//boost::asio::post(pool, [&]() {
+			boost::asio::post(pool, [&]() {
 				// Determine which tiles exist in this mbtiles file.
 				//
 				// This lets us optimize the case where only a single mbtiles has
@@ -149,8 +149,16 @@ int main(const int argc, const char* argv[]) {
 				//MBTiles mbtiles;
 				//mbtiles.openForReading(input->filename);
 				//mbtiles.populateTiles(input->zooms, input->bbox);
-				input->mbtiles.populateTiles(input->zooms, input->bbox);
-			//});
+				if (tlsTiles.empty()) {
+					for (const auto& input : inputs) {
+						tlsTiles.push_back(std::make_shared<MBTiles>());
+						tlsTiles.back()->openForReading(input->filename);
+					}
+				}
+
+				//input->mbtiles.populateTiles(input->zooms, input->bbox);
+				tlsTiles[input->index]->populateTiles(input->zooms, input->bbox);
+			});
 		}
 
 		pool.join();
@@ -208,11 +216,18 @@ int main(const int argc, const char* argv[]) {
 								//std::vector<char> old = matching[0]->mbtiles.readTile(zoom, x, y);
 
 								std::string buffer(old.data(), old.size());
+								// TODO: is this valid? We have a lock, but we'll access
+								// from different threads. This might be problematic because
+								// we cache the prepared statement.
 								merged.saveTile(zoom, x, y, &buffer, false);
 								continue;
 							}
 
-							//std::cout << "z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << " has " << std::to_string(matching.size()) << " tiles" << std::endl;
+							// Multiple mbtiles want to contribute a tile at this zxy.
+							// They'll all have disjoint layers, so decompress each tile
+							// and concatenate their contents to form the new tile.
+
+							// TODO: do this
 						}
 					}
 				}
