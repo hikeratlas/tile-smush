@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+# tile-smush doesn't do multithreading, but can be told to operate on only
+# a slice of tiles.
+#
+# To achieve multithreading (without running into sqlite's intra-process mutexes),
+# we launch multiple processes that each take a disjoint set of work.
+
+rm -f merged.mbtiles*
+
+pids=()
+export SHARDS=16
+for i in $(seq 0 $((SHARDS - 1))); do
+	SHARD=$i ./tile-smush "$@" &
+	pids[${i}]=$!
+done
+
+for pid in ${pids[*]}; do
+	wait $pid
+done

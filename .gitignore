@@ -5,6 +5,7 @@ build/
 tilemaker.dSYM/
 merged.mbtiles
 merged.pmtiles
+lockfile
 
 # editor temporaries
 *~
