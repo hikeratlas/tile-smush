@@ -39,7 +39,7 @@ jobs:
         cd build
         cmake -DTILEMAKER_BUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} -DCMAKE_TOOLCHAIN_FILE=${{ matrix.toolchain }} -DCMAKE_CXX_COMPILER=g++ ..
         cmake --build . 
-        strip tilemaker
+        strip tile-smush
 
   unix-makefile-build:
     strategy:
