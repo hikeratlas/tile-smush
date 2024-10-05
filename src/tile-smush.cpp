@@ -74,7 +74,8 @@ int main(const int argc, const char* argv[]) {
 	}
 
 	if (filenames.empty()) {
-		std::cerr << "usage: ./tile-smush file1.mbtiles file2.mbtiles [...]" << std::endl;
+		if (shard == 0)
+			std::cerr << "usage: ./tile-smush file1.mbtiles file2.mbtiles [...]" << std::endl;
 		return 1;
 	}
 

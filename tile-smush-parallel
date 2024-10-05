@@ -19,9 +19,11 @@ kill_children() {
 
 trap kill_children INT
 
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
 export SHARDS=16
 for i in $(seq 0 $((SHARDS - 1))); do
-	SHARD=$i ./tile-smush "$@" &
+	SHARD=$i "${SCRIPT_DIR}"/tile-smush "$@" &
 	pids[${i}]=$!
 done
 
