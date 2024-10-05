@@ -5,49 +5,7 @@ on:
     branches: [ master ]
   pull_request:
 
-env:
-  AREA: liechtenstein
-
 jobs:
-
-  Windows-Build:
-    name: Windows (CMake)
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Enable vcpkg cache
-      uses: actions/cache@v2
-      with:
-        path: c:\vcpkg\installed
-        key: windows-vcpkg-x64-0 # Increase the number whenever dependencies are modified
-        restore-keys: windows-vcpkg-x64
-
-    - name: Build dependencies
-      run: |
-        vcpkg install --triplet=x64-windows-static-md lua shapelib zlib protobuf[zlib] sqlite3 boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess boost-iostreams boost-sort rapidjson
-
-    - name: Build tilemaker
-      run: |
-        mkdir ${{ github.workspace }}\build        
-        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="c:\vcpkg\scripts\buildsystems\vcpkg.cmake"  ..
-        cd ${{ github.workspace }}\build && cmake --build . --config RelWithDebInfo
-
-    - name: Build openmaptiles-compatible mbtiles files of Liechtenstein
-      run: |
-        Invoke-WebRequest -Uri http://download.geofabrik.de/europe/${{ env.AREA }}-latest.osm.pbf -OutFile ${{ env.AREA }}.osm.pbf
-        ${{ github.workspace }}\build\RelWithDebInfo\tilemaker.exe ${{ env.AREA }}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${{ env.AREA }}.pmtiles --verbose
-        ${{ github.workspace }}\build\RelWithDebInfo\tilemaker.exe ${{ env.AREA }}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${{ env.AREA }}.mbtiles --store osm_store --verbose
-
-    - name: 'Upload compiled executable'
-      uses: actions/upload-artifact@v4
-      with:
-        name: tilemaker-windows
-        path: |
-          ${{ github.workspace }}\resources
-          ${{ github.workspace }}\build\RelWithDebInfo\tilemaker.exe
-          ${{ github.workspace }}\build\RelWithDebInfo\*.pdb
 
   unix-build:  
     strategy:  
@@ -83,27 +41,11 @@ jobs:
         cmake --build . 
         strip tilemaker
 
-    - name: Build openmaptiles-compatible mbtiles files of Liechtenstein
-      run: |
-        curl http://download.geofabrik.de/europe/${{ env.AREA }}-latest.osm.pbf -o ${{ env.AREA }}.osm.pbf
-        ${{ github.workspace }}/build/${{ matrix.executable }} ${{ env.AREA }}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${{ env.AREA }}.pmtiles --verbose
-        ${{ github.workspace }}/build/${{ matrix.executable }} ${{ env.AREA }}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${{ env.AREA }}.mbtiles --verbose --store /tmp/store
-
-    - name: 'Upload compiled executable'
-      uses: actions/upload-artifact@v4
-      with:
-        name: tilemaker-${{ matrix.os }}
-        path: |
-          ${{ github.workspace }}/resources
-          ${{ github.workspace }}/build/${{ matrix.executable }}
-
   unix-makefile-build:
     strategy:
       matrix:
         include:
           - os: ubuntu-22.04
-          - os: macos-latest
-          - os: macos-14
 
     name: ${{ matrix.os }} (Makefile)
     runs-on: ${{ matrix.os }}
@@ -127,29 +69,6 @@ jobs:
         make -j4
         make test
 
-    - name: Build openmaptiles-compatible mbtiles files of Liechtenstein
-      run: |
-        curl http://download.geofabrik.de/europe/${{ env.AREA }}-latest.osm.pbf -o ${{ env.AREA }}.osm.pbf
-        ./tilemaker ${{ env.AREA }}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${{ env.AREA }}.pmtiles --verbose
-        ./tilemaker ${{ env.AREA }}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${{ env.AREA }}.mbtiles --verbose --store /tmp/store
-
-
-  Github-Action:
-    name: Generate mbtiles with Github Action
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
-
-    - name: Download PBF file
-      run: curl http://download.geofabrik.de/europe/${AREA}-latest.osm.pbf -o ${AREA}.osm.pbf
-
-    - name: Build openmaptiles-compatible mbtiles files of given area
-      uses: ./
-      with:
-        input: ${{ env.AREA }}.osm.pbf 
-        output: ${{ env.AREA }}.mbtiles
 
   docker-build:
     env:
