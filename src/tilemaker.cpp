@@ -295,23 +295,25 @@ int main(const int argc, const char* argv[]) {
 				if (matching.size() == 1) {
 					// When exactly 1 mbtiles matches, it's a special case and we can
 					// copy directly between them.
-					//std::vector<char> old = tlsTiles[matching[0]->index]->readTile(zoom, x, y);
 					std::vector<char> old = matching[0]->mbtiles.readTile(zoom, x, y);
-
 					std::string buffer(old.data(), old.size());
-					// TODO: is this valid? We have a lock, but we'll access
-					// from different threads. This might be problematic because
-					// we cache the prepared statement.
 					merged.saveTile(zoom, x, y, &buffer, false);
 					continue;
 				}
 
-				// std::cout << "need to merge z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << std::endl;
+				std::cout << "need to merge z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << std::endl;
 				// Multiple mbtiles want to contribute a tile at this zxy.
 				// They'll all have disjoint layers, so decompress each tile
 				// and concatenate their contents to form the new tile.
 
-				// TODO: do this
+				for (auto& match : matching) {
+					std::vector<char> old = match->mbtiles.readTile(zoom, x, y);
+
+					std::string decompressed;
+					decompress_string(decompressed, old.data(), old.size(), true);
+					std::cout << "old.size()=" << std::to_string(old.size()) << " uncompressed.size()=" << std::to_string(decompressed.size()) << std::endl;
+
+				}
 			}
 		}
 	}

@@ -152,7 +152,10 @@ void MBTiles::saveTile(int zoom, int x, int y, string *data, bool isMerge) {
 
 void MBTiles::populateTiles(bool verbose, std::vector<PreciseTileCoordinatesSet>& zooms, std::vector<Bbox>& extents) {
 	size_t tiles = 0;
-	db << "SELECT zoom_level,tile_column,tile_row FROM tiles" >> [&](int z,int col, int row) {
+
+	// tilemaker writes a tile even when it's empty (i.e. 0 bytes).
+	// We then compress it, and it becomes 20 bytes. Filter those out here.
+	db << "SELECT zoom_level,tile_column,tile_row FROM tiles WHERE length(tile_data) <> 20" >> [&](int z,int col, int row) {
 		tiles++;
 		zooms[z].set(col, row);
 
@@ -204,17 +207,14 @@ vector<char> MBTiles::readTile(int zoom, int col, int row) {
 }
 
 bool MBTiles::readTileAndUncompress(string &data, int zoom, int x, int y, bool isCompressed, bool asGzip) {
-	m.lock();
-	int tmsY = pow(2,zoom) - 1 - y;
+	//NB: don't translate tmsY
+	//int tmsY = pow(2,zoom) - 1 - y;
 	int exists=0;
-	db << "SELECT COUNT(*) FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?" << zoom << x << tmsY >> exists;
-	m.unlock();
+	db << "SELECT COUNT(*) FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?" << zoom << x << y >> exists;
 	if (exists==0) return false;
 
-	m.lock();
 	std::vector<char> compressed;
-	db << "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?" << zoom << x << tmsY >> compressed;
-	m.unlock();
+	db << "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?" << zoom << x << y >> compressed;
 	try {
 		bio::stream<bio::array_source> in(compressed.data(), compressed.size());
 		bio::filtering_streambuf<bio::input> out;
