@@ -100,7 +100,9 @@ int main(const int argc, const char* argv[]) {
 				std::numeric_limits<size_t>::min()
 			});
 		}
+	}
 
+	for (auto& input : inputs) {
 		// Determine which tiles exist in this mbtiles file.
 		//
 		// This lets us optimize the case where only a single mbtiles has
@@ -111,6 +113,7 @@ int main(const int argc, const char* argv[]) {
 	}
 
 	std::vector<Input*> matching;
+
 	for (int zoom = 0; zoom < 15; zoom++) {
 		Bbox bbox = inputs[0]->bbox[zoom];
 		for (const auto& input : inputs) {
