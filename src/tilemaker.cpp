@@ -2,7 +2,6 @@
 
 // C++ includes
 #include <iostream>
-#include <fstream>
 #include <vector>
 #include <cstdint>
 #include <unordered_map>
@@ -13,37 +12,16 @@
 #include <thread>
 #include <mutex>
 #include <chrono>
-
-// Other utilities
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/program_options.hpp>
-#include <boost/variant.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/sort/sort.hpp>
-
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/filereadstream.h"
-#include "rapidjson/filewritestream.h"
-
-#ifndef _MSC_VER
-#include <sys/resource.h>
-#endif
-
-#include "geom.h"
+#include <map>
 
 // Tilemaker code
 #include "helpers.h"
 #include "coordinates.h"
-#include "coordinates_geom.h"
 #include "tile_coordinates_set.h"
 
 #include "mbtiles.h"
 
-#include <boost/interprocess/streams/bufferstream.hpp>
+#include <vtzero/builder.hpp>
 
 #ifndef TM_VERSION
 #define TM_VERSION (version not set)
@@ -53,8 +31,6 @@
 
 // Namespaces
 using namespace std;
-namespace po = boost::program_options;
-namespace geom = boost::geometry;
 
 // Global verbose switch
 bool verbose = false;
@@ -309,9 +285,11 @@ int main(const int argc, const char* argv[]) {
 				for (auto& match : matching) {
 					std::vector<char> old = match->mbtiles.readTile(zoom, x, y);
 
-					std::string decompressed;
-					decompress_string(decompressed, old.data(), old.size(), true);
-					std::cout << "old.size()=" << std::to_string(old.size()) << " uncompressed.size()=" << std::to_string(decompressed.size()) << std::endl;
+					std::string oldTile;
+					decompress_string(oldTile, old.data(), old.size(), true);
+					std::cout << "old.size()=" << std::to_string(old.size()) << " oldTile.size()=" << std::to_string(oldTile.size()) << std::endl;
+
+					vtzero::vector_tile existingTile{oldTile};
 
 				}
 			}
