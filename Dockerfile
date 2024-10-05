@@ -21,7 +21,6 @@ COPY CMakeLists.txt ./
 COPY cmake ./cmake
 COPY src ./src
 COPY include ./include
-COPY server ./server
 
 RUN mkdir build && \
     cd build && \
@@ -44,10 +43,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 
 WORKDIR /usr/src/app
 COPY --from=src /usr/src/app/build/tilemaker .
-COPY --from=src /usr/src/app/build/tilemaker-server .
 COPY resources ./resources
-COPY process.lua ./
-COPY config.json ./
 
 ENV PATH="/usr/src/app/build:$PATH"
 
