@@ -31,6 +31,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 
 WORKDIR /usr/src/app
 COPY --from=src /usr/src/app/build/tile-smush .
+COPY ./tile-smush-parallel .
 COPY resources ./resources
 
 ENV PATH="/usr/src/app/build:$PATH"
