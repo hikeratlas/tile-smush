@@ -61,7 +61,11 @@ namespace geom = boost::geometry;
 // Global verbose switch
 bool verbose = false;
 
+thread_local std::vector<std::shared_ptr<MBTiles>> tlsTiles;
+
 struct Input {
+	uint16_t index;
+	std::string filename;
 	MBTiles mbtiles;
 	std::vector<PreciseTileCoordinatesSet> zooms;
 	std::vector<Bbox> bbox;
@@ -86,9 +90,29 @@ int main(const int argc, const char* argv[]) {
 		return 1;
 	}
 
+	// Per https://www.sqlite.org/c3ref/c_config_covering_index_scan.html#sqliteconfigsinglethread,
+	// this should break everything.
+	//
+	// But things seem to still work, and this avoids the locking we were seeing.
+	//
+	// I would have thought we needed SQLITE_CONFIG_MULTITHREAD ? I feel like
+	// I'm missing something pretty big here, but let's go until we hit a wall.
+	int rv = sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
+	if (rv) {
+		std::cerr << "fatal: sqlite3_config(SQLITE_CONFIG_SINGLETHREAD)=" << std::to_string(rv) << std::endl;
+		return 1;
+	}
+	std::string MergedFilename("merged.mbtiles");
+	remove(MergedFilename.c_str());
+
+	MBTiles merged;
+	merged.openForWriting(MergedFilename);
+
 	std::vector<std::shared_ptr<Input>> inputs;
 	for (auto filename : filenames) {
 		std::shared_ptr<Input> input = std::make_shared<Input>();
+		input->filename = filename;
+		input->index = inputs.size();
 		inputs.push_back(input);
 		input->mbtiles.openForReading(filename);
 		input->zooms.reserve(15);
@@ -107,15 +131,22 @@ int main(const int argc, const char* argv[]) {
 		boost::asio::thread_pool pool(threadNum);
 
 		for (auto& input : inputs) {
-			boost::asio::post(pool, [&]() {
+			// TODO: this segfaults when run in the thread pool, which _is_
+			// what I expect SQLITE_CONFIG_SINGLETHREAD to do...
+			//
+			// ...but why does this die, and our very similar use immediately
+			// below does not?
+			//boost::asio::post(pool, [&]() {
 				// Determine which tiles exist in this mbtiles file.
 				//
 				// This lets us optimize the case where only a single mbtiles has
 				// a tile for a given zxy, as we can copy the bytes directly.
 				//
-				// TODO: we should parallelize this
+				//MBTiles mbtiles;
+				//mbtiles.openForReading(input->filename);
+				//mbtiles.populateTiles(input->zooms, input->bbox);
 				input->mbtiles.populateTiles(input->zooms, input->bbox);
-			});
+			//});
 		}
 
 		pool.join();
@@ -127,6 +158,15 @@ int main(const int argc, const char* argv[]) {
 		const uint64_t shards = threadNum * 2;
 		for (uint64_t shard = 0; shard < shards; shard++) {
 			boost::asio::post(pool, [&, shard]() {
+				// Ensure we have tls copies of each of the mbtiles
+
+				if (tlsTiles.empty()) {
+					for (const auto& input : inputs) {
+						tlsTiles.push_back(std::make_shared<MBTiles>());
+						tlsTiles.back()->openForReading(input->filename);
+					}
+				}
+
 				std::vector<Input*> matching;
 				for (int zoom = 0; zoom < 15; zoom++) {
 					Bbox bbox = inputs[0]->bbox[zoom];
@@ -151,6 +191,17 @@ int main(const int argc, const char* argv[]) {
 							if (matching.empty())
 								continue;
 
+							if (matching.size() == 1) {
+								// When exactly 1 mbtiles matches, it's a special case and we can
+								// copy directly between them.
+								std::vector<char> old = tlsTiles[matching[0]->index]->readTile(zoom, x, y);
+								//std::vector<char> old = matching[0]->mbtiles.readTile(zoom, x, y);
+
+								std::string buffer(old.data(), old.size());
+								merged.saveTile(zoom, x, y, &buffer, false);
+								continue;
+							}
+
 							//std::cout << "z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << " has " << std::to_string(matching.size()) << " tiles" << std::endl;
 						}
 					}
@@ -161,12 +212,10 @@ int main(const int argc, const char* argv[]) {
 		pool.join();
 	}
 
-	std::string MergedFilename("merged.mbtiles");
-	remove(MergedFilename.c_str());
+	// TODO: Populate the `metadata` table
+	// See https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md#content
 
-	MBTiles merged;
-	merged.openForWriting(MergedFilename);
-
+	merged.closeForWriting();
 
 }
 

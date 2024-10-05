@@ -298,10 +298,9 @@ namespace sqlite {
 	public:
 		database() {};
 
-		void init(std::string const & db_name) {
-			std::u16string n = std::u16string(db_name.begin(), db_name.end());
+		void init(std::string const & db_name, int flags) {
 			sqlite3* tmp = nullptr;
-			auto ret = sqlite3_open16(n.data(), &tmp);
+			auto ret = sqlite3_open_v2(db_name.data(), &tmp, flags, NULL);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
 			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
 			_connected = true;
