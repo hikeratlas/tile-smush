@@ -155,6 +155,117 @@ int main(const int argc, const char* argv[]) {
 	MBTiles merged;
 	merged.openForWriting(MergedFilename);
 
+	if (shard == 0) {
+		// Populate the `metadata` table
+		// See https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md#content
+
+		double minLon = std::numeric_limits<double>::max(),
+					 maxLon = std::numeric_limits<double>::min(),
+					 minLat = std::numeric_limits<double>::max(),
+					 maxLat = std::numeric_limits<double>::min();
+		int minzoom = 100;
+		int maxzoom = 0;
+		double minLonCurrent, maxLonCurrent, minLatCurrent, maxLatCurrent;
+
+		std::map<std::string, std::string> metadata;
+
+		// Use a map to dedupe. You can have _the exact same_ layer, e.g.
+		// as hikeratlas does with its hacky parks/city_parks hijinks.
+		std::map<std::string, std::string> layers;
+		for (auto& input : inputs) {
+			for (const auto& entry : input->mbtiles.readMetadata()) {
+				metadata[entry.first] = entry.second;
+
+				if (entry.first == "minzoom" || entry.first == "maxzoom") {
+					int zoom = atoi(entry.second.c_str());
+
+					if (entry.first == "minzoom" && zoom < minzoom)
+						minzoom = zoom;
+					if (entry.first == "maxzoom" && zoom > maxzoom)
+						maxzoom = zoom;
+				}
+
+				if (entry.first == "json") {
+					// This is incredibly hacky! I don't want to learn how to use a C++ JSON
+					// library
+					const char* vectorLayers = strstr(entry.second.c_str(), "\"vector_layers\":[");
+					if (!vectorLayers) {
+						throw std::runtime_error("no vector_layers found for " + input->filename);
+					}
+
+					vectorLayers += strlen("\"vector_layers\":[");
+					//std::cout << "INPUT: " << vectorLayers << std::endl;
+
+					const char* start = NULL;
+					// This is a total hack, it'll fail if you have braces in strings, e.g.
+					int braces = 0;
+					while(*vectorLayers != ']') {
+						if (start == NULL && *vectorLayers == ']')
+							break;
+
+						if (start == NULL && *vectorLayers == '{') {
+							start = vectorLayers;
+						}
+
+						if (*vectorLayers == '{') {
+							braces++;
+						}
+
+						if (*vectorLayers == '}') {
+							braces--;
+						}
+
+						if (start && braces == 0) {
+							std::string layer(start, vectorLayers - start + 1);
+							//std::cout << "LAYER: " << layer << std::endl;
+
+							layers[layer] = "";
+							start = NULL;
+						}
+
+						vectorLayers++;
+					}
+				}
+			}
+
+			input->mbtiles.readBoundingBox(minLonCurrent, maxLonCurrent, minLatCurrent, maxLatCurrent);
+
+			if (minLonCurrent < minLon) minLon = minLonCurrent;
+			if (minLatCurrent < minLat) minLat = minLatCurrent;
+			if (maxLonCurrent > maxLon) maxLon = maxLonCurrent;
+			if (maxLatCurrent > maxLat) maxLat = maxLatCurrent;
+		}
+
+		// Dump the metadata into merged.mbtiles
+		for (auto const& entry : metadata) {
+			merged.writeMetadata(entry.first, entry.second);
+		}
+
+		merged.writeMetadata(
+			"bounds", 
+			std::to_string(minLon) + "," +
+			std::to_string(minLat) + "," +
+			std::to_string(maxLon) + "," +
+			std::to_string(maxLat)
+		);
+
+		merged.writeMetadata("minzoom", std::to_string(minzoom));
+		merged.writeMetadata("maxzoom", std::to_string(maxzoom));
+
+		std::string vector_layers = "{\"vector_layers\":[";
+		int i = 0;
+		for (auto const& entry : layers) {
+			if (i > 0)
+				vector_layers += ",";
+
+			vector_layers += entry.first;
+			i++;
+		}
+
+		vector_layers += "]}";
+		merged.writeMetadata("json", vector_layers);
+	}
+
 	std::vector<Input*> matching;
 	for (int zoom = 0; zoom < 15; zoom++) {
 		Bbox bbox = inputs[0]->bbox[zoom];
@@ -203,58 +314,6 @@ int main(const int argc, const char* argv[]) {
 				// TODO: do this
 			}
 		}
-	}
-
-	if (shard == 0) {
-		// Populate the `metadata` table
-		// See https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md#content
-
-		double minLon = std::numeric_limits<double>::max(),
-					 maxLon = std::numeric_limits<double>::min(),
-					 minLat = std::numeric_limits<double>::max(),
-					 maxLat = std::numeric_limits<double>::min();
-		int minzoom = 100;
-		int maxzoom = 0;
-		double minLonCurrent, maxLonCurrent, minLatCurrent, maxLatCurrent;
-
-		std::map<std::string, std::string> metadata;
-		for (auto& input : inputs) {
-			for (const auto& entry : input->mbtiles.readMetadata()) {
-				metadata[entry.first] = entry.second;
-
-				if (entry.first == "minzoom" || entry.first == "maxzoom") {
-					int zoom = atoi(entry.second.c_str());
-
-					if (entry.first == "minzoom" && zoom < minzoom)
-						minzoom = zoom;
-					if (entry.first == "maxzoom" && zoom > maxzoom)
-						maxzoom = zoom;
-				}
-			}
-
-			input->mbtiles.readBoundingBox(minLonCurrent, maxLonCurrent, minLatCurrent, maxLatCurrent);
-
-			if (minLonCurrent < minLon) minLon = minLonCurrent;
-			if (minLatCurrent < minLat) minLat = minLatCurrent;
-			if (maxLonCurrent > maxLon) maxLon = maxLonCurrent;
-			if (maxLatCurrent > maxLat) maxLat = maxLatCurrent;
-		}
-
-		// Dump the metadata into merged.mbtiles
-		for (auto const& entry : metadata) {
-			merged.writeMetadata(entry.first, entry.second);
-		}
-
-		merged.writeMetadata(
-			"bounds", 
-			std::to_string(minLon) + "," +
-			std::to_string(minLat) + "," +
-			std::to_string(maxLon) + "," +
-			std::to_string(maxLat)
-		);
-
-		merged.writeMetadata("minzoom", std::to_string(minzoom));
-		merged.writeMetadata("maxzoom", std::to_string(maxzoom));
 	}
 
 	merged.closeForWriting();
