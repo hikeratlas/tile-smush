@@ -3,14 +3,7 @@ LABEL Description="Tilemaker" Version="1.4.0"
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
-    liblua5.1-0-dev \
     libsqlite3-dev \
-    libshp-dev \
-    libboost-program-options-dev \
-    libboost-filesystem-dev \
-    libboost-system-dev \
-    libboost-iostreams-dev \
-    rapidjson-dev \
     cmake \
     zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
@@ -32,16 +25,12 @@ ENV PATH="/usr/src/app/build:$PATH"
 
 FROM debian:bookworm-slim
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    liblua5.1-0 \
-    shapelib \
     libsqlite3-0 \
-    libboost-filesystem1.74.0 \
-    libboost-program-options1.74.0 \
-    libboost-iostreams1.74.0 && \
+    && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
-COPY --from=src /usr/src/app/build/tilemaker .
+COPY --from=src /usr/src/app/build/tile-smush .
 COPY resources ./resources
 
 ENV PATH="/usr/src/app/build:$PATH"

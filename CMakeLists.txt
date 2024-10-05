@@ -19,33 +19,8 @@ if (POLICY CMP0074)
 endif()
 
 IF (TILEMAKER_BUILD_STATIC)
-    MESSAGE (STATUS "Staticly linking with Boost")
-    SET (Boost_USE_STATIC_LIBS TRUE)
 	SET (CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
-ELSE ()
-    MESSAGE (STATUS "Dynamically linking with Boost")
-    SET (Boost_USE_STATIC_LIBS FALSE)
 ENDIF ()
-
-IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
-ENDIF ()
-
-find_package(Boost 1.66 REQUIRED COMPONENTS system filesystem program_options iostreams)
-
-find_package(libshp REQUIRED)
-
-find_package(Rapidjson REQUIRED)
-
-find_package(Lua)
-
-if(LUA_FOUND)
-	include_directories(${LUA_INCLUDE_DIR})
-else()
-	find_package(LuaJIT REQUIRED)
-	add_definitions(-DLUAJIT)
-	include_directories(${LUAJIT_INCLUDE_DIR})
-endif()
 
 find_package(ZLIB REQUIRED)
 
@@ -80,12 +55,9 @@ target_include_directories(tilemaker PRIVATE include)
 target_include_directories(tilemaker PRIVATE ${CMAKE_BINARY_DIR}) # for generated files
 target_link_libraries(tilemaker
 		${THREAD_LIB} ${CMAKE_DL_LIBS}
-		${LUA_LIBRARIES}
-		shapelib::shp
 		SQLite::SQLite3
 		ZLIB::ZLIB
-		Rapidjson::rapidjson
-		Boost::system Boost::filesystem Boost::program_options Boost::iostreams)
+		)
 
 include(CheckCxxAtomic)
 if(NOT HAVE_CXX11_ATOMIC)

@@ -16,9 +16,7 @@
 
 // Tilemaker code
 #include "helpers.h"
-#include "coordinates.h"
 #include "tile_coordinates_set.h"
-
 #include "mbtiles.h"
 
 #include <vtzero/builder.hpp>

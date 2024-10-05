@@ -3,7 +3,6 @@
 #define _MBTILES_H
 
 #include <string>
-#include <mutex>
 #include <vector>
 #include "external/sqlite_modern_cpp.h"
 #include "tile_coordinates_set.h"
@@ -32,13 +31,11 @@ private:
 class MBTiles { 
 	sqlite::database db;
 	std::vector<sqlite::database_binder> preparedStatements;
-	std::mutex m;
 	int lockfd;
 	bool inTransaction;
 	std::string filename;
 
 	std::shared_ptr<std::vector<PendingStatement>> pendingStatements1, pendingStatements2;
-	std::mutex pendingStatementsMutex;
 
 	void insertOrReplace(int zoom, int x, int y, const std::string& data, bool isMerge);
 	void flushPendingStatements();
@@ -56,7 +53,6 @@ public:
 	void openForReading(std::string &filename);
 	void readBoundingBox(double &minLon, double &maxLon, double &minLat, double &maxLat);
 	std::vector<char> readTile(int zoom, int col, int row);
-	bool readTileAndUncompress(std::string &data, int zoom, int col, int row, bool isCompressed, bool asGzip);
 };
 
 #endif //_MBTILES_H
