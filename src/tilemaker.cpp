@@ -74,6 +74,7 @@ struct Input {
  * Worker threads write the output tiles, and start in the outputProc function.
  */
 int main(const int argc, const char* argv[]) {
+	uint16_t threadNum = max(thread::hardware_concurrency(), 1u);
 	std::vector<std::string> filenames;
 	for (int i = 1; i < argc; i++) {
 		filenames.push_back(std::string(argv[i]));
@@ -102,41 +103,62 @@ int main(const int argc, const char* argv[]) {
 		}
 	}
 
-	for (auto& input : inputs) {
-		// Determine which tiles exist in this mbtiles file.
-		//
-		// This lets us optimize the case where only a single mbtiles has
-		// a tile for a given zxy, as we can copy the bytes directly.
-		//
-		// TODO: we should parallelize this
-		input->mbtiles.populateTiles(input->zooms, input->bbox);
+	{
+		boost::asio::thread_pool pool(threadNum);
+
+		for (auto& input : inputs) {
+			boost::asio::post(pool, [&]() {
+				// Determine which tiles exist in this mbtiles file.
+				//
+				// This lets us optimize the case where only a single mbtiles has
+				// a tile for a given zxy, as we can copy the bytes directly.
+				//
+				// TODO: we should parallelize this
+				input->mbtiles.populateTiles(input->zooms, input->bbox);
+			});
+		}
+
+		pool.join();
 	}
 
-	std::vector<Input*> matching;
+	{
+		boost::asio::thread_pool pool(threadNum);
 
-	for (int zoom = 0; zoom < 15; zoom++) {
-		Bbox bbox = inputs[0]->bbox[zoom];
-		for (const auto& input : inputs) {
-			if (input->bbox[zoom].minX < bbox.minX) bbox.minX = input->bbox[zoom].minX;
-			if (input->bbox[zoom].minY < bbox.minY) bbox.minY = input->bbox[zoom].minY;
-			if (input->bbox[zoom].maxX > bbox.maxX) bbox.maxX = input->bbox[zoom].maxX;
-			if (input->bbox[zoom].maxY > bbox.maxY) bbox.maxY = input->bbox[zoom].maxY;
-		}
+		const uint64_t shards = threadNum * 2;
+		for (uint64_t shard = 0; shard < shards; shard++) {
+			boost::asio::post(pool, [&, shard]() {
+				std::vector<Input*> matching;
+				for (int zoom = 0; zoom < 15; zoom++) {
+					Bbox bbox = inputs[0]->bbox[zoom];
+					for (const auto& input : inputs) {
+						if (input->bbox[zoom].minX < bbox.minX) bbox.minX = input->bbox[zoom].minX;
+						if (input->bbox[zoom].minY < bbox.minY) bbox.minY = input->bbox[zoom].minY;
+						if (input->bbox[zoom].maxX > bbox.maxX) bbox.maxX = input->bbox[zoom].maxX;
+						if (input->bbox[zoom].maxY > bbox.maxY) bbox.maxY = input->bbox[zoom].maxY;
+					}
 
-		for (int x = bbox.minX; x < bbox.maxX; x++) {
-			for (int y = bbox.minY; y < bbox.maxY; y++) {
-				matching.clear();
-				for (const auto& input : inputs) {
-					if (input->zooms[zoom].test(x, y))
-						matching.push_back(input.get());
+					for (int x = bbox.minX; x < bbox.maxX; x++) {
+						for (int y = bbox.minY; y < bbox.maxY; y++) {
+							if ((x * (1 << zoom) + y) % shards != shard)
+								continue;
+
+							matching.clear();
+							for (const auto& input : inputs) {
+								if (input->zooms[zoom].test(x, y))
+									matching.push_back(input.get());
+							}
+
+							if (matching.empty())
+								continue;
+
+							//std::cout << "z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << " has " << std::to_string(matching.size()) << " tiles" << std::endl;
+						}
+					}
 				}
-
-				if (matching.empty())
-					continue;
-
-				std::cout << "z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << " has " << std::to_string(matching.size()) << " tiles" << std::endl;
-			}
+			});
 		}
+		
+		pool.join();
 	}
 
 	std::string MergedFilename("merged.mbtiles");
