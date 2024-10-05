@@ -19,7 +19,7 @@ RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_BUILD_TYPE=Release .. && \
     cmake --build . --parallel $(nproc) && \
-    strip tilemaker
+    strip tile-smush
 
 ENV PATH="/usr/src/app/build:$PATH"
 
