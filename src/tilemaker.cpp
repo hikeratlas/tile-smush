@@ -64,6 +64,7 @@ bool verbose = false;
 struct Input {
 	MBTiles mbtiles;
 	std::vector<PreciseTileCoordinatesSet> zooms;
+	std::vector<Bbox> bbox;
 };
 /**
  *\brief The Main function is responsible for command line processing, loading data and starting worker threads.
@@ -80,7 +81,7 @@ int main(const int argc, const char* argv[]) {
 	}
 
 	if (filenames.empty()) {
-		std::cerr << "usage: ./tile-smush file1.mbtiles file2mbtiles [...]" << std::endl;
+		std::cerr << "usage: ./tile-smush file1.mbtiles file2.mbtiles [...]" << std::endl;
 		return 1;
 	}
 
@@ -90,8 +91,15 @@ int main(const int argc, const char* argv[]) {
 		inputs.push_back(input);
 		input->mbtiles.openForReading(filename);
 		input->zooms.reserve(15);
-		for (int zoom = 0; zoom < 15; zoom++)
+		for (int zoom = 0; zoom < 15; zoom++) {
 			input->zooms.push_back(PreciseTileCoordinatesSet(zoom));
+			input->bbox.push_back({
+				std::numeric_limits<size_t>::max(),
+				std::numeric_limits<size_t>::max(),
+				std::numeric_limits<size_t>::min(),
+				std::numeric_limits<size_t>::min()
+			});
+		}
 
 		// Determine which tiles exist in this mbtiles file.
 		//
@@ -99,8 +107,33 @@ int main(const int argc, const char* argv[]) {
 		// a tile for a given zxy, as we can copy the bytes directly.
 		//
 		// TODO: we should parallelize this
-		input->mbtiles.populateTiles(input->zooms);
+		input->mbtiles.populateTiles(input->zooms, input->bbox);
+	}
 
+	std::vector<Input*> matching;
+	for (int zoom = 0; zoom < 15; zoom++) {
+		Bbox bbox = inputs[0]->bbox[zoom];
+		for (const auto& input : inputs) {
+			if (input->bbox[zoom].minX < bbox.minX) bbox.minX = input->bbox[zoom].minX;
+			if (input->bbox[zoom].minY < bbox.minY) bbox.minY = input->bbox[zoom].minY;
+			if (input->bbox[zoom].maxX > bbox.maxX) bbox.maxX = input->bbox[zoom].maxX;
+			if (input->bbox[zoom].maxY > bbox.maxY) bbox.maxY = input->bbox[zoom].maxY;
+		}
+
+		for (int x = bbox.minX; x < bbox.maxX; x++) {
+			for (int y = bbox.minY; y < bbox.maxY; y++) {
+				matching.clear();
+				for (const auto& input : inputs) {
+					if (input->zooms[zoom].test(x, y))
+						matching.push_back(input.get());
+				}
+
+				if (matching.empty())
+					continue;
+
+				std::cout << "z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << " has " << std::to_string(matching.size()) << " tiles" << std::endl;
+			}
+		}
 	}
 
 	std::string MergedFilename("merged.mbtiles");

@@ -4,6 +4,13 @@
 #include <cstddef>
 #include "coordinates.h"
 
+struct Bbox {
+	size_t minX;
+	size_t minY;
+	size_t maxX;
+	size_t maxY;
+};
+
 // Interface representing a bitmap of tiles of interest at a given zoom.
 class TileCoordinatesSet {
 public:

@@ -100,11 +100,16 @@ void MBTiles::saveTile(int zoom, int x, int y, string *data, bool isMerge) {
 	}
 }
 
-void MBTiles::populateTiles(std::vector<PreciseTileCoordinatesSet>& zooms) {
+void MBTiles::populateTiles(std::vector<PreciseTileCoordinatesSet>& zooms, std::vector<Bbox>& extents) {
 	size_t tiles = 0;
 	db << "SELECT zoom_level,tile_column,tile_row FROM tiles" >> [&](int z,int col, int row) {
 		tiles++;
 		zooms[z].set(col, row);
+
+		if (col > extents[z].maxX) extents[z].maxX = col;
+		if (col < extents[z].minX) extents[z].minX = col;
+		if (row > extents[z].maxY) extents[z].maxY = row;
+		if (row < extents[z].minY) extents[z].minY = row;
 	};
 	std::cout << filename << " had " << std::to_string(tiles) << " tiles" << std::endl;
 }
@@ -128,12 +133,6 @@ void MBTiles::readBoundingBox(double &minLon, double &maxLon, double &minLat, do
 	vector<string> b = split_string(boundsStr,',');
 	minLon = stod(b[0]); minLat = stod(b[1]);
 	maxLon = stod(b[2]); maxLat = stod(b[3]);
-}
-
-void MBTiles::readTileList(std::vector<std::tuple<int,int,int>> &tileList) {
-	db << "SELECT zoom_level,tile_column,tile_row FROM tiles" >> [&](int z,int col, int row) {
-		tileList.emplace_back(std::make_tuple(z,col,row));
-	};
 }
 
 vector<char> MBTiles::readTile(int zoom, int col, int row) {
