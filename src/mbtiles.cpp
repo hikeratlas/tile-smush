@@ -135,7 +135,6 @@ void MBTiles::flushPendingStatements() {
 			pendingStatements2->pop_back();
 		}
 
-		std::lock_guard<std::mutex> lock(pendingStatementsMutex);
 		pendingStatements1.swap(pendingStatements2);
 	}
 
@@ -181,15 +180,8 @@ void MBTiles::openForReading(string &filename) {
 	std::string uri = "file:";
 	uri += filename;
 	uri += "?immutable=1&mode=ro";
-	//db.init(uri.c_str(), SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_NOMUTEX);
-	db.init(uri.c_str(), SQLITE_OPEN_READONLY | SQLITE_OPEN_URI);
+	db.init(uri.c_str(), SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_NOMUTEX);
 	this->filename = filename;
-
-	/*
-	db << "pragma compile_options" >> [&](string str) {
-		std::cout << str << std::endl;
-	};
-	*/
 }
 
 void MBTiles::readBoundingBox(double &minLon, double &maxLon, double &minLat, double &maxLat) {
