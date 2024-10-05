@@ -97,13 +97,23 @@ void MBTiles::openForWriting(string &filename) {
 }
 	
 void MBTiles::writeMetadata(string key, string value) {
-	m.lock();
+	Flock lock(lockfd);
 	db << "REPLACE INTO metadata (name,value) VALUES (?,?);" << key << value;
-	m.unlock();
+}
+
+std::vector<std::pair<std::string, std::string>> MBTiles::readMetadata() {
+	Flock lock(lockfd);
+
+	std::vector<std::pair<std::string, std::string>> rv;
+	db << "SELECT name, value FROM metadata;" >> [&](std::string name, std::string value) {
+		rv.push_back(std::make_pair(name, value));
+	};
+
+	return rv;
 }
 
 void MBTiles::insertOrReplace(int zoom, int x, int y, const std::string& data, bool isMerge) {
-	// NB: assumes we have the `m` mutex
+	// NB: assumes we have n flock on lockfd
 	int tmsY = pow(2, zoom) - 1 - y;
 	int s = isMerge ? 1 : 0;
 	preparedStatements[s].reset();
@@ -113,7 +123,6 @@ void MBTiles::insertOrReplace(int zoom, int x, int y, const std::string& data, b
 
 void MBTiles::flushPendingStatements() {
 	Flock lock(lockfd);
-	// NB: assumes we have the `m` mutex
 
 	db << "BEGIN";
 

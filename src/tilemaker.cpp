@@ -202,8 +202,22 @@ int main(const int argc, const char* argv[]) {
 		}
 	}
 
-	// TODO: Populate the `metadata` table
-	// See https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md#content
+	if (shard == 0) {
+		// Populate the `metadata` table
+		// See https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md#content
+
+		std::map<std::string, std::string> metadata;
+		for (auto& input : inputs) {
+			for (const auto& entry : input->mbtiles.readMetadata()) {
+				metadata[entry.first] = entry.second;
+			}
+		}
+
+		// Dump the metadata into merged.mbtiles
+		for (auto const& entry : metadata) {
+			merged.writeMetadata(entry.first, entry.second);
+		}
+	}
 
 	merged.closeForWriting();
 

@@ -48,6 +48,7 @@ public:
 	virtual ~MBTiles();
 	void openForWriting(std::string &filename);
 	void writeMetadata(std::string key, std::string value);
+	std::vector<std::pair<std::string, std::string>> readMetadata();
 	void saveTile(int zoom, int x, int y, std::string *data, bool isMerge);
 	void closeForWriting();
 
