@@ -90,17 +90,27 @@ int main(const int argc, const char* argv[]) {
 		return 1;
 	}
 
-	// Per https://www.sqlite.org/c3ref/c_config_covering_index_scan.html#sqliteconfigsinglethread,
-	// this should break everything.
-	//
-	// But things seem to still work, and this avoids the locking we were seeing.
-	//
-	// I would have thought we needed SQLITE_CONFIG_MULTITHREAD ? I feel like
-	// I'm missing something pretty big here, but let's go until we hit a wall.
-	int rv = sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
-	if (rv) {
-		std::cerr << "fatal: sqlite3_config(SQLITE_CONFIG_SINGLETHREAD)=" << std::to_string(rv) << std::endl;
-		return 1;
+	{
+		// See https://github.com/xerial/sqlite-jdbc/issues/59#issuecomment-162115704
+		int rv;
+		rv = sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
+		if (rv) {
+			std::cerr << "fatal: sqlite3_config(SQLITE_CONFIG_MEMSTATUS)=" << std::to_string(rv) << std::endl;
+			return 1;
+		}
+
+		// Per https://www.sqlite.org/c3ref/c_config_covering_index_scan.html#sqliteconfigsinglethread,
+		// this should break everything.
+		//
+		// But things seem to still work, and this avoids the locking we were seeing.
+		//
+		// I would have thought we needed SQLITE_CONFIG_MULTITHREAD ? I feel like
+		// I'm missing something pretty big here, but let's go until we hit a wall.
+		rv = sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
+		if (rv) {
+			std::cerr << "fatal: sqlite3_config(SQLITE_CONFIG_SINGLETHREAD)=" << std::to_string(rv) << std::endl;
+			return 1;
+		}
 	}
 	std::string MergedFilename("merged.mbtiles");
 	remove(MergedFilename.c_str());

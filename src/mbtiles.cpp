@@ -126,7 +126,8 @@ void MBTiles::openForReading(string &filename) {
 	std::string uri = "file:";
 	uri += filename;
 	uri += "?immutable=1&mode=ro";
-	db.init(uri.c_str(), SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_NOMUTEX);
+	//db.init(uri.c_str(), SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_NOMUTEX);
+	db.init(uri.c_str(), SQLITE_OPEN_READONLY | SQLITE_OPEN_URI);
 	this->filename = filename;
 
 	/*
