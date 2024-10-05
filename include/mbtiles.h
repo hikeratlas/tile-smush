@@ -16,6 +16,15 @@ struct PendingStatement {
 	bool isMerge;
 };
 
+class Flock {
+public:
+	Flock(int fd);
+	~Flock();
+
+private:
+	int fd_;
+};
+
 /** \brief Write to MBTiles (sqlite) database
 *
 * (note that sqlite_modern_cpp.h is very slightly changed from the original, for blob support and an .init method)
@@ -24,6 +33,7 @@ class MBTiles {
 	sqlite::database db;
 	std::vector<sqlite::database_binder> preparedStatements;
 	std::mutex m;
+	int lockfd;
 	bool inTransaction;
 	std::string filename;
 
@@ -41,7 +51,7 @@ public:
 	void saveTile(int zoom, int x, int y, std::string *data, bool isMerge);
 	void closeForWriting();
 
-	void populateTiles(std::vector<PreciseTileCoordinatesSet>& zooms, std::vector<Bbox>& extents);
+	void populateTiles(bool verbose, std::vector<PreciseTileCoordinatesSet>& zooms, std::vector<Bbox>& extents);
 	void openForReading(std::string &filename);
 	void readBoundingBox(double &minLon, double &maxLon, double &minLat, double &maxLat);
 	std::vector<char> readTile(int zoom, int col, int row);

@@ -8,23 +8,62 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
 #include <boost/iostreams/device/array.hpp>
+#include <fcntl.h>
+#include <sys/file.h>
 
 using namespace sqlite;
 using namespace std;
 namespace bio = boost::iostreams;
 
+Flock::Flock(int fd) {
+	fd_ = 0;
+
+	int rv = flock(fd, LOCK_EX);
+	if (rv == 0)
+		fd_ = fd;
+	else
+		throw std::runtime_error("failed to flock");
+}
+
+Flock::~Flock() {
+	if (fd_)
+		flock(fd_, LOCK_UN);
+}
+
 MBTiles::MBTiles():
+	inTransaction(false),
   pendingStatements1(std::make_shared<std::vector<PendingStatement>>()),
   pendingStatements2(std::make_shared<std::vector<PendingStatement>>())
-{}
+{
+	lockfd = 0;
+	lockfd = open("./lockfile", O_CREAT, 0644);
+	if (lockfd == -1)
+		throw std::runtime_error("failed to open lockfile");
+
+	//std::cout << "lockfd=" << std::to_string(lockfd) << std::endl;
+}
 
 MBTiles::~MBTiles() {
-	if (db && inTransaction) db << "COMMIT;"; // commit all the changes if open
+	{
+		Flock lock(lockfd);
+		if (db && inTransaction) {
+			db << "COMMIT;"; // commit all the changes if open
+		}
+
+		// Reset the DB member so that the sqlite3_close_v2() command is called
+		// inside of the flock
+		(void)[v=std::move(db)]{};
+	}
+
+	if (lockfd) {
+		close(lockfd);
+	}
 }
 
 // ---- Write .mbtiles
 
 void MBTiles::openForWriting(string &filename) {
+	Flock lock(lockfd);
 	db.init(filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
 	this->filename = filename;
 
@@ -42,7 +81,7 @@ void MBTiles::openForWriting(string &filename) {
 	try {
 		db << "PRAGMA journal_mode=OFF;";
 	} catch(runtime_error &e) {
-		cout << "Couldn't turn journaling off (not fatal): " << e.what() << endl;
+		cout << "Couldn't turn journaling on (not fatal): " << e.what() << endl;
 	}
 	db << "PRAGMA page_size = 65536;";
 	db << "VACUUM;"; // make sure page_size takes effect
@@ -52,9 +91,9 @@ void MBTiles::openForWriting(string &filename) {
 	preparedStatements.emplace_back(db << "INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data) VALUES (?,?,?,?);");
 	preparedStatements.emplace_back(db << "REPLACE INTO tiles (zoom_level, tile_column, tile_row, tile_data) VALUES (?,?,?,?);");
 
-	db << "BEGIN;"; // begin a transaction
 	cout << "Creating mbtiles at " << filename << endl;
-	inTransaction = true;
+//	db << "BEGIN;"; // begin a transaction
+//	inTransaction = true;
 }
 	
 void MBTiles::writeMetadata(string key, string value) {
@@ -88,6 +127,9 @@ void MBTiles::flushPendingStatements() {
 }
 	
 void MBTiles::saveTile(int zoom, int x, int y, string *data, bool isMerge) {
+	Flock lock(lockfd);
+	// TODO: consider buffering these and flushing only every, say, 1000 rows
+
 	// If the lock is available, write directly to SQLite.
 	if (m.try_lock()) {
 		insertOrReplace(zoom, x, y, *data, isMerge);
@@ -100,7 +142,7 @@ void MBTiles::saveTile(int zoom, int x, int y, string *data, bool isMerge) {
 	}
 }
 
-void MBTiles::populateTiles(std::vector<PreciseTileCoordinatesSet>& zooms, std::vector<Bbox>& extents) {
+void MBTiles::populateTiles(bool verbose, std::vector<PreciseTileCoordinatesSet>& zooms, std::vector<Bbox>& extents) {
 	size_t tiles = 0;
 	db << "SELECT zoom_level,tile_column,tile_row FROM tiles" >> [&](int z,int col, int row) {
 		tiles++;
@@ -111,10 +153,12 @@ void MBTiles::populateTiles(std::vector<PreciseTileCoordinatesSet>& zooms, std::
 		if (row > extents[z].maxY) extents[z].maxY = row;
 		if (row < extents[z].minY) extents[z].minY = row;
 	};
-	std::cerr << filename << " had " << std::to_string(tiles) << " tiles" << std::endl;
+	if (verbose)
+		std::cout << filename << " had " << std::to_string(tiles) << " tiles" << std::endl;
 }
 
 void MBTiles::closeForWriting() {
+	Flock lock(lockfd);
 	flushPendingStatements();
 	preparedStatements[0].used(true);
 	preparedStatements[1].used(true);
