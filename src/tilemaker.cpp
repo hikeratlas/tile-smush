@@ -112,12 +112,6 @@ int main(const int argc, const char* argv[]) {
 			return 1;
 		}
 	}
-	std::string MergedFilename("merged.mbtiles");
-	remove(MergedFilename.c_str());
-
-	MBTiles merged;
-	merged.openForWriting(MergedFilename);
-
 	std::vector<std::shared_ptr<Input>> inputs;
 	for (auto filename : filenames) {
 		std::shared_ptr<Input> input = std::make_shared<Input>();
@@ -161,6 +155,12 @@ int main(const int argc, const char* argv[]) {
 
 		pool.join();
 	}
+
+	std::string MergedFilename("merged.mbtiles");
+	remove(MergedFilename.c_str());
+
+	MBTiles merged;
+	merged.openForWriting(MergedFilename);
 
 	{
 		boost::asio::thread_pool pool(threadNum);
