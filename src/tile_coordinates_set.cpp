@@ -35,24 +35,4 @@ void PreciseTileCoordinatesSet::set(TileCoordinate x, TileCoordinate y) {
 	tiles[loc] = true;
 }
 
-LossyTileCoordinatesSet::LossyTileCoordinatesSet(unsigned int zoom, const TileCoordinatesSet& underlying) : zoom_(zoom), tiles(underlying), scale(1 << (zoom - underlying.zoom())) {
-	if (zoom <= underlying.zoom())
-		throw std::out_of_range("LossyTileCoordinatesSet: zoom (" + std::to_string(zoom_) + ") must be greater than underlying set's zoom (" + std::to_string(underlying.zoom()) + ")");
-}
-
-bool LossyTileCoordinatesSet::test(TileCoordinate x, TileCoordinate y) const {
-	return tiles.test(x / scale, y / scale);
-}
-
-size_t LossyTileCoordinatesSet::size() const {
-	return tiles.size() * scale * scale;
-}
-
-size_t LossyTileCoordinatesSet::zoom() const {
-	return zoom_;
-}
-
-void LossyTileCoordinatesSet::set(TileCoordinate x, TileCoordinate y) {
-	throw std::logic_error("LossyTileCoordinatesSet::set() is not implemented; LossyTileCoordinatesSet is read-only");
-}
 

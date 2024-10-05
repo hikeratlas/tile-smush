@@ -47,21 +47,3 @@ double degp2meter(double degp, double latp) {
 double meter2degp(double meter, double latp) {
 	return rad2deg((1/RadiusMeter) * (meter / cos(deg2rad(latp2lat(latp)))));
 }
-
-// the range between smallest y and largest y is filled, for each x
-void fillCoveredTiles(std::unordered_set<TileCoordinates>& tileSet) {
-	std::vector<TileCoordinates> tileList(tileSet.begin(), tileSet.end());
-	std::sort(tileList.begin(), tileList.end(), TileCoordinatesCompare());
-
-	TileCoordinate prevX = 0, prevY = static_cast<TileCoordinate>(-2);
-	for (TileCoordinates index: tileList) {
-		TileCoordinate tileX = index.x, tileY = index.y;
-		if (tileX == prevX) {
-			// this loop has no effect at the first iteration
-			for (TileCoordinate fillY = prevY+1; fillY < tileY; fillY++) {
-				tileSet.insert(TileCoordinates(tileX, fillY));
-			}
-		}
-		prevX = tileX, prevY = tileY;
-	}
-}

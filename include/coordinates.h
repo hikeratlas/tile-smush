@@ -9,9 +9,6 @@
 
 #include <cstdint>
 #include <utility>
-#include <vector>
-#include <deque>
-#include <unordered_set>
 
 // A 36-bit integer can store all OSM node IDs; we represent this as 16 collections
 // of 32-bit integers.
@@ -20,9 +17,6 @@ typedef uint32_t ShardedNodeID;
 typedef uint64_t NodeID;
 typedef uint64_t WayID;
 typedef uint64_t RelationID;
-
-typedef std::vector<WayID> WayVec;
-
 
 // Supports up to z22
 typedef uint32_t TileCoordinate;
@@ -60,32 +54,14 @@ struct TileCoordinatesCompare {
         return a.y < b.y;
     }
 };
+
 typedef class TileCoordinates_ TileCoordinates;
-namespace std {
-	template<> struct hash<TileCoordinates> {
-		size_t operator()(const TileCoordinates & obj) const {
-			return 16384 * hash<TileCoordinate>()(obj.x) + hash<TileCoordinate>()(obj.y);
-		}
-	};
-}
 
 struct LatpLon {
 	int32_t latp;
 	int32_t lon;
 };
 inline bool operator==(const LatpLon &a, const LatpLon &b) { return a.latp==b.latp && a.lon==b.lon; }
-namespace std {
-	/// Hashing function so we can use an unordered_set
-	template<>
-	struct hash<LatpLon> {
-		size_t operator()(const LatpLon &ll) const {
-			return std::hash<int32_t>()(ll.latp) ^ std::hash<int32_t>()(ll.lon);
-		}
-	};
-}
-
-typedef std::vector<LatpLon> LatpLonVec;
-typedef std::deque<LatpLon> LatpLonDeque;
 
 double deg2rad(double deg);
 double rad2deg(double rad);
@@ -122,9 +98,6 @@ constexpr double RadiusMeter = 6371000;
 double degp2meter(double degp, double latp);
 
 double meter2degp(double meter, double latp);
-
-// the range between smallest y and largest y is filled, for each x
-void fillCoveredTiles(std::unordered_set<TileCoordinates> &tileSet);
 
 #endif //_COORDINATES_H
 

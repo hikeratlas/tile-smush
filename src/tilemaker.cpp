@@ -4,14 +4,11 @@
 #include <iostream>
 #include <vector>
 #include <cstdint>
-#include <unordered_map>
-#include <unordered_set>
 #include <string>
 #include <cmath>
 #include <stdexcept>
 #include <thread>
-#include <mutex>
-#include <chrono>
+#include <deque>
 #include <map>
 
 // Tilemaker code
