@@ -114,10 +114,12 @@ std::vector<std::pair<std::string, std::string>> MBTiles::readMetadata() {
 
 void MBTiles::insertOrReplace(int zoom, int x, int y, const std::string& data, bool isMerge) {
 	// NB: assumes we have n flock on lockfd
-	int tmsY = pow(2, zoom) - 1 - y;
+
+	// NB2: don't translate tmsY - we're just passing everything through
+	//int tmsY = pow(2, zoom) - 1 - y;
 	int s = isMerge ? 1 : 0;
 	preparedStatements[s].reset();
-	preparedStatements[s] << zoom << x << tmsY && data;
+	preparedStatements[s] << zoom << x << y && data;
 	preparedStatements[s].execute();
 }
 

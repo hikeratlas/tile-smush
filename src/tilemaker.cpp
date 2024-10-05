@@ -165,8 +165,10 @@ int main(const int argc, const char* argv[]) {
 			if (input->bbox[zoom].maxY > bbox.maxY) bbox.maxY = input->bbox[zoom].maxY;
 		}
 
-		for (int x = bbox.minX; x < bbox.maxX; x++) {
-			for (int y = bbox.minY; y < bbox.maxY; y++) {
+		// std::cout << "z=" << std::to_string(zoom) << " minX=" << std::to_string(bbox.minX) << " minY=" << std::to_string(bbox.minY) << " maxX=" << std::to_string(bbox.maxX) << " maxY=" << std::to_string(bbox.maxY) << std::endl;
+
+		for (int x = bbox.minX; x <= bbox.maxX; x++) {
+			for (int y = bbox.minY; y <= bbox.maxY; y++) {
 				if ((x * (1 << zoom) + y) % shards != shard)
 					continue;
 
@@ -193,6 +195,7 @@ int main(const int argc, const char* argv[]) {
 					continue;
 				}
 
+				// std::cout << "need to merge z=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << std::endl;
 				// Multiple mbtiles want to contribute a tile at this zxy.
 				// They'll all have disjoint layers, so decompress each tile
 				// and concatenate their contents to form the new tile.
