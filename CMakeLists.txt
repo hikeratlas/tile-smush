@@ -69,42 +69,12 @@ else()
 endif()
 
 file(GLOB tilemaker_src_files
-	src/attribute_store.cpp
 	src/coordinates.cpp
 	src/coordinates_geom.cpp
-	src/external/streamvbyte_decode.c
-	src/external/streamvbyte_encode.c
-	src/external/streamvbyte_zigzag.c
-	src/geojson_processor.cpp
-	src/geom.cpp
 	src/helpers.cpp
 	src/mbtiles.cpp
-	src/mmap_allocator.cpp
-	src/node_stores.cpp
-	src/options_parser.cpp
-	src/osm_lua_processing.cpp
-	src/osm_mem_tiles.cpp
-	src/osm_store.cpp
-	src/output_object.cpp
-	src/pbf_processor.cpp
-	src/pbf_reader.cpp
-	src/pmtiles.cpp
-	src/pooled_string.cpp
-	src/relation_roles.cpp
-	src/sharded_node_store.cpp
-	src/sharded_way_store.cpp
-	src/shared_data.cpp
-	src/shp_mem_tiles.cpp
-	src/shp_processor.cpp
-	src/significant_tags.cpp
-	src/sorted_node_store.cpp
-	src/sorted_way_store.cpp
-	src/tag_map.cpp
 	src/tile_coordinates_set.cpp
-	src/tile_data.cpp
 	src/tilemaker.cpp
-	src/tile_worker.cpp
-	src/way_stores.cpp
   )
 add_executable(tilemaker ${tilemaker_src_files})
 target_include_directories(tilemaker PRIVATE include)
@@ -124,6 +94,4 @@ if(NOT HAVE_CXX11_ATOMIC)
 	" ${LIBATOMIC_LINK_FLAGS}")
 endif()
 
-install(FILES docs/man/tilemaker.1 DESTINATION share/man/man1)
-
-install(TARGETS tilemaker tilemaker-server RUNTIME DESTINATION bin)
+install(TARGETS tilemaker RUNTIME DESTINATION bin)

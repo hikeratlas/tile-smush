@@ -26,8 +26,7 @@ RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_BUILD_TYPE=Release .. && \
     cmake --build . --parallel $(nproc) && \
-    strip tilemaker && \
-    strip tilemaker-server
+    strip tilemaker
 
 ENV PATH="/usr/src/app/build:$PATH"
 
