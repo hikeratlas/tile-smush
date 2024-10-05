@@ -3,6 +3,7 @@
 tile-smush
 build/
 tilemaker.dSYM/
+merged.mbtiles
 
 # editor temporaries
 *~

@@ -1,6 +1,7 @@
 #include "tile_coordinates_set.h"
 #include <string>
 #include <stdexcept>
+#include <iostream>
 
 PreciseTileCoordinatesSet::PreciseTileCoordinatesSet(unsigned int zoom):
 	zoom_(zoom),

@@ -26,6 +26,7 @@ MBTiles::~MBTiles() {
 
 void MBTiles::openForWriting(string &filename) {
 	db.init(filename);
+	this->filename = filename;
 
 	db << "PRAGMA synchronous = OFF;";
 	try {
@@ -99,6 +100,15 @@ void MBTiles::saveTile(int zoom, int x, int y, string *data, bool isMerge) {
 	}
 }
 
+void MBTiles::populateTiles(std::vector<PreciseTileCoordinatesSet>& zooms) {
+	size_t tiles = 0;
+	db << "SELECT zoom_level,tile_column,tile_row FROM tiles" >> [&](int z,int col, int row) {
+		tiles++;
+		zooms[z].set(col, row);
+	};
+	std::cout << filename << " had " << std::to_string(tiles) << " tiles" << std::endl;
+}
+
 void MBTiles::closeForWriting() {
 	flushPendingStatements();
 	preparedStatements[0].used(true);
@@ -109,6 +119,7 @@ void MBTiles::closeForWriting() {
 
 void MBTiles::openForReading(string &filename) {
 	db.init(filename);
+	this->filename = filename;
 }
 
 void MBTiles::readBoundingBox(double &minLon, double &maxLon, double &minLat, double &maxLat) {

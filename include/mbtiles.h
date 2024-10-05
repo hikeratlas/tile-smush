@@ -6,6 +6,7 @@
 #include <mutex>
 #include <vector>
 #include "external/sqlite_modern_cpp.h"
+#include "tile_coordinates_set.h"
 
 struct PendingStatement {
 	int zoom;
@@ -24,6 +25,7 @@ class MBTiles {
 	std::vector<sqlite::database_binder> preparedStatements;
 	std::mutex m;
 	bool inTransaction;
+	std::string filename;
 
 	std::shared_ptr<std::vector<PendingStatement>> pendingStatements1, pendingStatements2;
 	std::mutex pendingStatementsMutex;
@@ -39,6 +41,7 @@ public:
 	void saveTile(int zoom, int x, int y, std::string *data, bool isMerge);
 	void closeForWriting();
 
+	void populateTiles(std::vector<PreciseTileCoordinatesSet>& zooms);
 	void openForReading(std::string &filename);
 	void readBoundingBox(double &minLon, double &maxLon, double &minLat, double &maxLat);
 	void readTileList(std::vector<std::tuple<int,int,int>> &tileList);
