@@ -79,7 +79,7 @@ void MBTiles::openForWriting(string &filename) {
 		cout << "Couldn't set SQLite default encoding (not fatal): " << e.what() << endl;
 	}
 	try {
-		db << "PRAGMA journal_mode=OFF;";
+		db << "PRAGMA journal_mode=WAL;";
 	} catch(runtime_error &e) {
 		cout << "Couldn't turn journaling on (not fatal): " << e.what() << endl;
 	}
@@ -91,7 +91,7 @@ void MBTiles::openForWriting(string &filename) {
 	preparedStatements.emplace_back(db << "INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data) VALUES (?,?,?,?);");
 	preparedStatements.emplace_back(db << "REPLACE INTO tiles (zoom_level, tile_column, tile_row, tile_data) VALUES (?,?,?,?);");
 
-	cout << "Creating mbtiles at " << filename << endl;
+	//cout << "Creating mbtiles at " << filename << endl;
 //	db << "BEGIN;"; // begin a transaction
 //	inTransaction = true;
 }
@@ -112,7 +112,10 @@ void MBTiles::insertOrReplace(int zoom, int x, int y, const std::string& data, b
 }
 
 void MBTiles::flushPendingStatements() {
+	Flock lock(lockfd);
 	// NB: assumes we have the `m` mutex
+
+	db << "BEGIN";
 
 	for (int i = 0; i < 2; i++) {
 		while(!pendingStatements2->empty()) {
@@ -124,22 +127,16 @@ void MBTiles::flushPendingStatements() {
 		std::lock_guard<std::mutex> lock(pendingStatementsMutex);
 		pendingStatements1.swap(pendingStatements2);
 	}
+
+	db << "COMMIT";
 }
 	
 void MBTiles::saveTile(int zoom, int x, int y, string *data, bool isMerge) {
-	Flock lock(lockfd);
-	// TODO: consider buffering these and flushing only every, say, 1000 rows
+	//std::cerr << "writing zoom=" << std::to_string(zoom) << " x=" << std::to_string(x) << " y=" << std::to_string(y) << std::endl;
+	pendingStatements1->push_back({zoom, x, y, *data, isMerge});
 
-	// If the lock is available, write directly to SQLite.
-	if (m.try_lock()) {
-		insertOrReplace(zoom, x, y, *data, isMerge);
+	if (pendingStatements1->size() > 10000)
 		flushPendingStatements();
-		m.unlock();
-	} else {
-		// Else buffer the write for later, copying its binary blob.
-		const std::lock_guard<std::mutex> lock(pendingStatementsMutex);
-		pendingStatements1->push_back({zoom, x, y, *data, isMerge});
-	}
 }
 
 void MBTiles::populateTiles(bool verbose, std::vector<PreciseTileCoordinatesSet>& zooms, std::vector<Bbox>& extents) {

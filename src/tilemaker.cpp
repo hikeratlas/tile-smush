@@ -159,7 +159,6 @@ int main(const int argc, const char* argv[]) {
 	}
 
 	MBTiles merged;
-	std::cerr << "openForWriting() " << std::endl;
 	merged.openForWriting(MergedFilename);
 
 	std::vector<Input*> matching;
@@ -212,7 +211,6 @@ int main(const int argc, const char* argv[]) {
 	// TODO: Populate the `metadata` table
 	// See https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md#content
 
-	std::cerr << "closeForWriting() " << std::endl;
 	merged.closeForWriting();
 
 }
