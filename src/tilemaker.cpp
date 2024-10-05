@@ -206,17 +206,52 @@ int main(const int argc, const char* argv[]) {
 		// Populate the `metadata` table
 		// See https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md#content
 
+		double minLon = std::numeric_limits<double>::max(),
+					 maxLon = std::numeric_limits<double>::min(),
+					 minLat = std::numeric_limits<double>::max(),
+					 maxLat = std::numeric_limits<double>::min();
+		int minzoom = 100;
+		int maxzoom = 0;
+		double minLonCurrent, maxLonCurrent, minLatCurrent, maxLatCurrent;
+
 		std::map<std::string, std::string> metadata;
 		for (auto& input : inputs) {
 			for (const auto& entry : input->mbtiles.readMetadata()) {
 				metadata[entry.first] = entry.second;
+
+				if (entry.first == "minzoom" || entry.first == "maxzoom") {
+					int zoom = atoi(entry.second.c_str());
+
+					if (entry.first == "minzoom" && zoom < minzoom)
+						minzoom = zoom;
+					if (entry.first == "maxzoom" && zoom > maxzoom)
+						maxzoom = zoom;
+				}
 			}
+
+			input->mbtiles.readBoundingBox(minLonCurrent, maxLonCurrent, minLatCurrent, maxLatCurrent);
+
+			if (minLonCurrent < minLon) minLon = minLonCurrent;
+			if (minLatCurrent < minLat) minLat = minLatCurrent;
+			if (maxLonCurrent > maxLon) maxLon = maxLonCurrent;
+			if (maxLatCurrent > maxLat) maxLat = maxLatCurrent;
 		}
 
 		// Dump the metadata into merged.mbtiles
 		for (auto const& entry : metadata) {
 			merged.writeMetadata(entry.first, entry.second);
 		}
+
+		merged.writeMetadata(
+			"bounds", 
+			std::to_string(minLon) + "," +
+			std::to_string(minLat) + "," +
+			std::to_string(maxLon) + "," +
+			std::to_string(maxLat)
+		);
+
+		merged.writeMetadata("minzoom", std::to_string(minzoom));
+		merged.writeMetadata("maxzoom", std::to_string(maxzoom));
 	}
 
 	merged.closeForWriting();
