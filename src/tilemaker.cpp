@@ -284,8 +284,6 @@ int main(const int argc, const char* argv[]) {
 
 				vtzero::tile_builder builder;
 
-				// TODO: consider using a shared ptr or something to avoid needless
-				// string copying
 				std::deque<std::string> strs;
 				for (auto& match : matching) {
 					std::vector<char> compressed = match->mbtiles.readTile(zoom, x, y);
