@@ -37,9 +37,6 @@ uint64_t getFileSize(std::string filename);
 std::vector<OffsetAndLength> getNewlineChunks(const std::string &filename, uint64_t chunks);
 
 void decompress_string(std::string& output, const char* input, uint32_t inputSize, bool asGzip = false);
-double bboxElementFromStr(const std::string& number);
-
-std::vector<std::string> parseBox(const std::string& bbox);
 
 std::string compress_string(const std::string& str,
                             int compressionlevel = Z_DEFAULT_COMPRESSION,
