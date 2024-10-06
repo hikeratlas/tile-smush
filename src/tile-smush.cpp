@@ -299,7 +299,7 @@ int main(const int argc, const char* argv[]) {
 
 				std::string buffer;
 				builder.serialize(buffer);
-				std::string compressed = compress_string(buffer, 9, true);
+				std::string compressed = compress_string(buffer, 6, true);
 				merged.saveTile(zoom, x, y, &compressed, false);
 			}
 		}

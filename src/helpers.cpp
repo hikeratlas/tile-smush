@@ -75,6 +75,7 @@ std::string compress_string(const std::string& str,
 		size_t maxSize = libdeflate_gzip_compress_bound(compressor.compressor, str.size());
 		rv.resize(maxSize);
 
+		//std::cout << "compressing str with size " << std::to_string(str.size()) << " maxSize=" << std::to_string(maxSize) << " rv.size()=" << std::to_string(rv.size()) << std::endl;
 		size_t compressedSize = libdeflate_gzip_compress(compressor.compressor, str.data(), str.size(), &rv[0], maxSize);
 		if (compressedSize == 0)
 			throw std::runtime_error("libdeflate_gzip_compress failed");

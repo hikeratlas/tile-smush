@@ -65,6 +65,6 @@ install:
 	install -m 0755 tile-smush $(DESTDIR)$(prefix)/bin/
 
 clean:
-	rm -f tile-smush src/*.o src/external/*.o include/*.o include/*.pb.h server/*.o test/*.o rm test.*
+	rm -f tile-smush src/*.o src/external/*.o include/*.o include/*.pb.h server/*.o test/*.o rm test.* src/external/libdeflate/lib/*.o ./src/external/libdeflate/lib/*/*.o
 
 .PHONY: install
