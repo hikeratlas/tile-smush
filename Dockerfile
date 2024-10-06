@@ -4,8 +4,7 @@ LABEL Description="Tilemaker" Version="1.4.0"
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
     libsqlite3-dev \
-    cmake \
-    zlib1g-dev && \
+    cmake && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
