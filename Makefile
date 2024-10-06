@@ -40,6 +40,17 @@ test: \
 
 test_helpers: \
 	src/helpers.o \
+	src/external/libdeflate/lib/adler32.o \
+	src/external/libdeflate/lib/arm/cpu_features.o \
+	src/external/libdeflate/lib/crc32.o \
+	src/external/libdeflate/lib/deflate_compress.o \
+	src/external/libdeflate/lib/deflate_decompress.o \
+	src/external/libdeflate/lib/gzip_compress.o \
+	src/external/libdeflate/lib/gzip_decompress.o \
+	src/external/libdeflate/lib/utils.o \
+	src/external/libdeflate/lib/x86/cpu_features.o \
+	src/external/libdeflate/lib/zlib_compress.o \
+	src/external/libdeflate/lib/zlib_decompress.o \
 	test/helpers.test.o
 	$(CXX) $(CXXFLAGS) -o test.helpers $^ $(INC) $(LIB) $(LDFLAGS) && ./test.helpers
 
