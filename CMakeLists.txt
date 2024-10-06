@@ -22,8 +22,6 @@ IF (TILESMUSH_BUILD_STATIC)
 	SET (CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
 ENDIF ()
 
-find_package(ZLIB REQUIRED)
-
 set(CMAKE_CXX_STANDARD 17)
 
 if(!TM_VERSION)
@@ -45,6 +43,20 @@ endif()
 
 file(GLOB tilesmush_src_files
 	src/coordinates.cpp
+	src/external/streamvbyte_decode.c
+	src/external/streamvbyte_encode.c
+	src/external/streamvbyte_zigzag.c
+	src/external/libdeflate/lib/adler32.c
+	src/external/libdeflate/lib/arm/cpu_features.c
+	src/external/libdeflate/lib/crc32.c
+	src/external/libdeflate/lib/deflate_compress.c
+	src/external/libdeflate/lib/deflate_decompress.c
+	src/external/libdeflate/lib/gzip_compress.c
+	src/external/libdeflate/lib/gzip_decompress.c
+	src/external/libdeflate/lib/utils.c
+	src/external/libdeflate/lib/x86/cpu_features.c
+	src/external/libdeflate/lib/zlib_compress.c
+	src/external/libdeflate/lib/zlib_decompress.c
 	src/helpers.cpp
 	src/mbtiles.cpp
 	src/tile_coordinates_set.cpp
@@ -56,7 +68,6 @@ target_include_directories(tile-smush PRIVATE ${CMAKE_BINARY_DIR}) # for generat
 target_link_libraries(tile-smush
 		${THREAD_LIB} ${CMAKE_DL_LIBS}
 		SQLite::SQLite3
-		ZLIB::ZLIB
 		)
 
 include(CheckCxxAtomic)

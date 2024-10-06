@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cmath>
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/file.h>
 
 using namespace sqlite;
