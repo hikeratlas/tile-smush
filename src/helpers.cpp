@@ -30,11 +30,20 @@ public:
 	libdeflate_compressor* compressor;
 
 	Compressor(int level): level(level), compressor(NULL) {
+		setLevel(level);
+	}
+
+	void setLevel(int level) {
+		libdeflate_free_compressor(compressor);
+		this->level = level;
 		compressor = libdeflate_alloc_compressor(level);
 
 		if (!compressor)
 			throw std::runtime_error("libdeflate_alloc_compressor failed (level=" + std::to_string(level) + ")");
 	}
+
+	Compressor & operator=(const Compressor&) = delete;
+	Compressor(const Compressor&) = delete;
 
 	~Compressor() {
 		libdeflate_free_compressor(compressor);
@@ -52,13 +61,16 @@ public:
 			throw std::runtime_error("libdeflate_alloc_decompressor failed");
 	}
 
+	Decompressor & operator=(const Decompressor&) = delete;
+	Decompressor(const Decompressor&) = delete;
+
 	~Decompressor() {
 		libdeflate_free_decompressor(decompressor);
 	}
 };
 
 
-thread_local Compressor compressor(6);
+thread_local Compressor compressor(9);
 thread_local Decompressor decompressor;
 
 std::string compress_string(const std::string& str,
@@ -68,14 +80,14 @@ std::string compress_string(const std::string& str,
 		compressionlevel = 6;
 
 	if (compressionlevel != compressor.level)
-		compressor = Compressor(compressionlevel);
+		compressor.setLevel(compressionlevel);
 
 	std::string rv;
 	if (asGzip) {
 		size_t maxSize = libdeflate_gzip_compress_bound(compressor.compressor, str.size());
 		rv.resize(maxSize);
 
-		//std::cout << "compressing str with size " << std::to_string(str.size()) << " maxSize=" << std::to_string(maxSize) << " rv.size()=" << std::to_string(rv.size()) << std::endl;
+		//std::cout << "compressing str with level " << std::to_string(compressionlevel) << " size " << std::to_string(str.size()) << " maxSize=" << std::to_string(maxSize) << " rv.size()=" << std::to_string(rv.size()) << std::endl;
 		size_t compressedSize = libdeflate_gzip_compress(compressor.compressor, str.data(), str.size(), &rv[0], maxSize);
 		if (compressedSize == 0)
 			throw std::runtime_error("libdeflate_gzip_compress failed");
