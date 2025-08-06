@@ -17,6 +17,7 @@
 #include "mbtiles.h"
 
 #include <vtzero/builder.hpp>
+#include <json.hpp>
 
 #ifndef TM_VERSION
 #define TM_VERSION (version not set)
@@ -26,6 +27,7 @@
 
 // Namespaces
 using namespace std;
+using json = nlohmann::json;
 
 // Global verbose switch
 bool verbose = false;
@@ -158,44 +160,14 @@ int main(const int argc, const char* argv[]) {
 				}
 
 				if (entry.first == "json") {
-					// This is incredibly hacky! I don't want to learn how to use a C++ JSON
-					// library
-					const char* vectorLayers = strstr(entry.second.c_str(), "\"vector_layers\":[");
-					if (!vectorLayers) {
-						throw std::runtime_error("no vector_layers found for " + input->filename);
+					json j = json::parse(entry.second);
+					if (!j.contains("vector_layers") || !j["vector_layers"].is_array()) {
+						throw std::runtime_error("no valid vector_layers in json for " + input->filename);
 					}
 
-					vectorLayers += strlen("\"vector_layers\":[");
-					//std::cout << "INPUT: " << vectorLayers << std::endl;
-
-					const char* start = NULL;
-					// This is a total hack, it'll fail if you have braces in strings, e.g.
-					int braces = 0;
-					while(*vectorLayers != ']') {
-						if (start == NULL && *vectorLayers == ']')
-							break;
-
-						if (start == NULL && *vectorLayers == '{') {
-							start = vectorLayers;
-						}
-
-						if (*vectorLayers == '{') {
-							braces++;
-						}
-
-						if (*vectorLayers == '}') {
-							braces--;
-						}
-
-						if (start && braces == 0) {
-							std::string layer(start, vectorLayers - start + 1);
-							//std::cout << "LAYER: " << layer << std::endl;
-
-							layers[layer] = "";
-							start = NULL;
-						}
-
-						vectorLayers++;
+					for (const auto& layer : j["vector_layers"]) {
+						std::string layerStr = layer.dump();
+						layers[layerStr] = "";
 					}
 				}
 			}

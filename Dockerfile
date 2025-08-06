@@ -4,8 +4,11 @@ LABEL Description="Tilemaker" Version="1.4.0"
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
     libsqlite3-dev \
+    curl \
+    ca-certificates \
     cmake && \
     rm -rf /var/lib/apt/lists/*
+RUN curl -L -o /usr/local/include/json.hpp https://raw.githubusercontent.com/nlohmann/json/v3.11.3/single_include/nlohmann/json.hpp
 
 WORKDIR /usr/src/app
 
